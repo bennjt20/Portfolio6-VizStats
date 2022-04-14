@@ -4,10 +4,10 @@ output: html_document
 date: 'April 11, 2022'
 ---
 
-For this portfolio, I'd like to find a way to include a non-cluttered, key statistical takeaway figure. To begin with, I will start with the simple p value. Specifically, I would like to depict the p value somewhere on the graph itself. 
-Conceptually, it seems to me that including the p value on the graph itself might make for a better or more persuasive visual presentation. So, let's see what it might look like to showing the relationship among variables in the graph and provide a statistical figure on that same graph. 
+For this portfolio, I'd like to find a way to include a non-cluttered, key takeaway figure within a graph. To begin with, I will start with the simple p value. Specifically, I would like to depict the p value somewhere on the graph itself with a simple text box containing "p=#.##". 
+Conceptually, it seems to me that including the p value on the graph itself might make for a better or more persuasive visual presentation. So, let's see what it might look like to show the relationship among variables in the graph and provide a statistical figure on that same graph. 
 Note: I use a two sample t-test AKA independent samples t-test below. Specifically, the Welch’s t-test. 
-I believe that there are issues with the use of measures of statistical significance when exhaustive data are analyzed, as with these two variables which are not "sample" but rather all available data on the subjects. But for demonstration purposes, I'll use the p value here. 
+I believe that there are issues with the use of measures of statistical significance when exhaustive data are analyzed. That is the case with these two variables (military suicide and combat deaths) which are not "sample" data but rather all available data on the subjects. But for demonstration purposes, I'll use the p value here. 
 
 1) First, installing packages / libraries, and -of course- our awesome "Stop the errors" code. 
 
@@ -27,48 +27,13 @@ library(ggplot2)
 library(tidyr)
 ```
 
-2) I'll work with my data from my Portfolio animating the relationship between military suicide and combat deaths. First, for our animation packages. 
-
-```{r animation packages}
-install.packages('gapminder')
-install.packages('gganimate')
-install.packages ('gifski')
-install.packages ('ggrepel')
-```
-
-```{r animation library}
-library(gapminder)
-library(gganimate)
-library(gifski)
-library(ggrepel)
-theme_set(theme_bw())
-```
-
-3) Next, read my new Excel doc into a dataframe
+2) Next, reading my Excel doc into a dataframe
 ```{r Read data from CSV into a dataframe}
 library(readr)
 dfMilStatsTest <-  read.csv("~/Documents/GitHub/Portfolio6-VizStats/MilStatsExcel.csv")
 ```
 
-
-
-4) Now, to make sure the animation code functions properly.
-
-```{r Animation}
-ggplot(dfMilStatsTest, aes(Time, Value, group = Object, color = Object)) + 
-  geom_line(size=1) +   
-  geom_point(size = 2) + 
-  geom_label_repel(aes(x = Time, y=Value, label = Object, fill = Object), hjust = 0, direction    = "y", nudge_x = 20,
-                   fontface = 'bold',
-                   color = 'white', size=6,
-                   segment.color = 'grey50',
-                   segment.size = 0.5) +
-  transition_reveal(Time) 
-```
-
-Everything looks good when we knit that. With those preliminaries out of the way, let's try to work in a p value. 
-
-5) For our first attempt, let's insert a p value somewhere near the legend.
+3) For our first attempt, let's get a bit of summary data before going on to insert a p value somewhere near the legend.
 
 ```{r Stats packages}
 library(tidyverse)
@@ -81,19 +46,24 @@ dfMilStatsTest %>%
   group_by(Object) %>%
   get_summary_stats(Value, type = "mean_sd")
 ```
+4) Next, the T test:
 
 ```{r T Test} 
 res <- t.test(Value ~ Object, data = dfMilStatsTest, paired = TRUE)
 res
 ```
 
-With a p-value = 0.9209, let's see how we can plug that in to our graph.
+5) With a p-value = 0.9209, let's see how we can plug that in to our graph.
 
--excellent tutorial
+This website contains an excellent tutorial on how to use R to do time series correlations:
 https://www.lobdata.com.br/2020/09/15/how-to-perform-correlation-analysis-in-time-series-data-using-r/
+
+We'll get our necessary packages/libraries and run those:
 
 ```{r Time Series Correlation} 
 install.packages('feasts')
+install.packages('tsibble')
+install.packages('lubridate')
 ```
 
 ```{r Time Series, TSstudio} 
@@ -106,7 +76,6 @@ library(tsibble)
 library(lubridate)
 library(TSstudio)
 ```
-
 
 ```{r Time Series Correlation2} 
 library(readr)
@@ -121,6 +90,8 @@ install.packages("dplyr")
 ```{r Select variables2} 
 library(dplyr)
 ```
+
+(These steps are all laid out in the tutorial linked to above)
 
 ```{r Select variables3} 
 TSdf <- forTSdf %>%
@@ -138,6 +109,7 @@ TSdf2 <- ts(data = TSdf[, c("CD", "Suic")],
 ts_info(TSdf2)
 ```
 
+6) Plotting the time series data
 
 ```{r Time Series Corr Graph}
 ts_plot(TSdf2,
@@ -145,6 +117,8 @@ ts_plot(TSdf2,
         Ytitle = "Suicides and Combat Deaths",
         Xtitle = "Year")
 ```
+
+7) Correlations on the time series data:
 
 ```{r Corr1} 
 TSdf2[, c("CD")] %>% 
@@ -158,7 +132,13 @@ TSdf2[, c("CD")] %>%
       main = "Autocorrelation Plot - Suic")
 ```
 
-```{r DeleteA dataframe}   
-rm(TSdf)
-```
+That is the output for showing time series correlations, but I've realized something crucial: The statistical analysis that is appropriate for time series data does not depict something that may be very interesting to people interested in correlations about data over time!
+What I've learned from this portfolio is that I'm going to have to select the correct statistical formula, and also ensure that the statistical results depict the key results of interest to lay people. In other words, what I would like to depict is the way military suicide relates to combat deaths over time, year by year in the following format:
+
+Data Point 1: Correlation in 2000
+Data Point 2: Correlation in 2001 (data for years 2000-2001)
+Data Point 3: Correlation in 2002 (data for years 2000-2002)
+etc. etc.
+
+As data accumulate over time, the correlation would presumably change as well. It is the cumulative correlation that I want to capture, as that cumulative correlation changes over time. That is what I will turn to next, in Portfolio 7.
 
